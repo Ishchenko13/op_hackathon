@@ -1,62 +1,52 @@
+"""Local search over the checked-in European scheduled-airport catalogue."""
+
+from pathlib import Path
 import pandas as pd
-from typing import List, Dict
 
-# Встроенный надежный каталог ключевых европейских аэропортов (с регулярными рейсами)
-# Источник: OpenFlights / IATA Official Registry
-# Дата обновления: 2026-06-15
-AIRPORTS_DATA = [
-    {"iata": "AMS", "city": "Amsterdam", "airport": "Schiphol Airport", "country": "Netherlands"},
-    {"iata": "BCN", "city": "Barcelona", "airport": "Barcelona-El Prat Airport", "country": "Spain"},
-    {"iata": "CDG", "city": "Paris", "airport": "Charles de Gaulle Airport", "country": "France"},
-    {"iata": "ORY", "city": "Paris", "airport": "Orly Airport", "country": "France"},
-    {"iata": "FCO", "city": "Rome", "airport": "Leonardo da Vinci–Fiumicino Airport", "country": "Italy"},
-    {"iata": "CIA", "city": "Rome", "airport": "Ciampino–G. B. Pastine International Airport", "country": "Italy"},
-    {"iata": "VIE", "city": "Vienna", "airport": "Vienna International Airport", "country": "Austria"},
-    {"iata": "MAD", "city": "Madrid", "airport": "Adolfo Suárez Madrid–Barajas Airport", "country": "Spain"},
-    {"iata": "BER", "city": "Berlin", "airport": "Berlin Brandenburg Airport", "country": "Germany"},
-    {"iata": "FRA", "city": "Frankfurt", "airport": "Frankfurt Airport", "country": "Germany"},
-    {"iata": "MUC", "city": "Munich", "airport": "Munich Airport", "country": "Germany"},
-    {"iata": "LHR", "city": "London", "airport": "Heathrow Airport", "country": "United Kingdom"},
-    {"iata": "LGW", "city": "London", "airport": "Gatwick Airport", "country": "United Kingdom"},
-    {"iata": "ZRH", "city": "Zurich", "airport": "Zurich Airport", "country": "Switzerland"},
-    {"iata": "BRU", "city": "Brussels", "airport": "Brussels Airport", "country": "Belgium"},
-]
+AIRPORTS_PATH = Path(__file__).resolve().parent / "data" / "airports.csv"
+
+# Major airports serving European capitals whose airport municipality differs.
+CITY_OVERRIDES = {
+    "AMS": "Amsterdam", "BRU": "Brussels", "CDG": "Paris", "ORY": "Paris",
+    "FCO": "Rome", "CIA": "Rome", "VIE": "Vienna", "MAD": "Madrid",
+    "BER": "Berlin", "LHR": "London", "LGW": "London", "WAW": "Warsaw",
+    "WMI": "Warsaw", "PRG": "Prague", "CPH": "Copenhagen", "TLL": "Tallinn",
+    "HEL": "Helsinki", "ATH": "Athens", "BUD": "Budapest", "KEF": "Reykjavik",
+    "RKV": "Reykjavik", "DUB": "Dublin", "RIX": "Riga", "VNO": "Vilnius",
+    "LUX": "Luxembourg", "MLA": "Valletta", "RMO": "Chisinau", "TGD": "Podgorica",
+    "SKP": "Skopje", "OSL": "Oslo", "LIS": "Lisbon", "OTP": "Bucharest",
+    "BBU": "Bucharest", "MSQ": "Minsk", "DME": "Moscow", "SVO": "Moscow",
+    "VKO": "Moscow", "ZIA": "Moscow", "BEG": "Belgrade", "BTS": "Bratislava",
+    "LJU": "Ljubljana", "ARN": "Stockholm", "BMA": "Stockholm", "NYO": "Stockholm",
+    "BRN": "Bern", "TIA": "Tirana", "SJJ": "Sarajevo", "SOF": "Sofia",
+    "ZAG": "Zagreb", "PRN": "Pristina", "ESB": "Ankara", "EVN": "Yerevan",
+    "TBS": "Tbilisi", "GYD": "Baku", "LCA": "Nicosia", "PFO": "Nicosia",
+}
 
 
-def search_airports(query: str, limit: int = 8) -> List[Dict[str, str]]:
-    """
-    Search European airports by city name, airport name, or IATA code.
-    Returns a list of dictionaries with iata, city, airport, country, and display_name.
-    """
-    if not query or not isinstance(query, str):
+def search_airports(query: str, limit: int = 8) -> list[dict[str, str]]:
+    """Search by city, airport, or IATA code and return display-ready records."""
+    if not isinstance(query, str) or len(query.strip()) < 2:
         return []
-
-    q = query.strip().lower()
-    if len(q) < 2:
-        return []  # Безопасная обработка слишком коротких запросов
-
-    df = pd.DataFrame(AIRPORTS_DATA)
-
-    # Фильтруем: наличие валидного IATA-кода и совпадение по городу, порту или коду
-    mask = (
-            df["iata"].notna() & (
-            df["city"].str.lower().str.contains(q, na=False) |
-            df["airport"].str.lower().str.contains(q, na=False) |
-            df["iata"].str.lower().str.contains(q, na=False)
+    if not isinstance(limit, int) or limit < 1:
+        return []
+    airports = pd.read_csv(AIRPORTS_PATH).fillna("")
+    airports["city"] = airports.apply(
+        lambda row: CITY_OVERRIDES.get(row["iata"], row["city"]), axis=1
     )
-    )
-
-    filtered_df = df[mask].head(limit)
-
+    term = query.strip()
+    exact_code = airports["iata"].astype(str).str.casefold().eq(term.casefold())
+    exact_city = airports["city"].astype(str).str.casefold().eq(term.casefold())
+    mask = pd.Series(False, index=airports.index)
+    for field in ("city", "airport", "iata"):
+        mask |= airports[field].astype(str).str.contains(term, case=False, regex=False)
+    matches = pd.concat([
+        airports.loc[exact_code],
+        airports.loc[~exact_code & exact_city],
+        airports.loc[mask & ~exact_code & ~exact_city],
+    ])
     results = []
-    for _, row in filtered_df.iterrows():
-        display_name = f"{row['city']} — {row['airport']} ({row['iata']})"
-        results.append({
-            "iata": row["iata"],
-            "city": row["city"],
-            "airport": row["airport"],
-            "country": row["country"],
-            "display_name": display_name
-        })
-
+    for item in matches.drop_duplicates("iata").head(limit).to_dict("records"):
+        item["display_name"] = f"{item['city']} — {item['airport']} ({item['iata']})"
+        results.append(item)
     return results
