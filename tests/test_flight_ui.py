@@ -27,7 +27,6 @@ def flight_client(monkeypatch):
     monkeypatch.setitem(sys.modules, "airport_service", airport_service)
     monkeypatch.setitem(sys.modules, "flight_service", flight_service)
     monkeypatch.setenv("DUFFEL_ACCESS_TOKEN", "mock-token")
-    monkeypatch.setenv("FLIGHT_DEMO_MODE", "0")
 
     query = dict(
         flight_search="1", origin="AMS", destination="CDG",
@@ -36,6 +35,27 @@ def flight_client(monkeypatch):
         return_date=(date.today() + timedelta(days=35)).isoformat(), adults="2",
     )
     return app.test_client(), flight_service, query
+
+
+def offer_for(query):
+    dates = [query["departure_date"], query["return_date"]]
+    routes = [("AMS", "CDG"), ("CDG", "AMS")]
+    return {
+        "total_amount": "99.50", "currency": "EUR", "airline": "Example Airline",
+        "live_mode": True, "is_demo": False,
+        "slices": [
+            {
+                "departure_time": f"{day}T09:30:00", "arrival_time": f"{day}T10:50:00",
+                "duration": "PT1H20M", "stops": 0,
+                "segments": [{
+                    "origin_iata": origin, "destination_iata": destination,
+                    "baggage": [{"passenger_id": "pas_test",
+                                 "baggages": [{"type": "checked", "quantity": 1}]}],
+                }],
+            }
+            for day, (origin, destination) in zip(dates, routes) if day
+        ],
+    }
 
 
 def test_home_and_airport_autocomplete(flight_client):
@@ -56,16 +76,12 @@ def test_mock_offers_render_in_price_order(flight_client):
 
     def search_flights(origin, destination, departure, return_date=None, adults=1):
         assert (origin, destination, departure, return_date, adults) == (
-            "AMS", "CDG", date.fromisoformat(query["departure_date"]),
-            date.fromisoformat(query["return_date"]), 2,
+            "AMS", "CDG", query["departure_date"], query["return_date"], 2,
         )
-        details = dict(
-            currency="EUR", departure="09:30", arrival="10:50", duration="1h 20m",
-            stops=0, baggage="One checked bag", is_demo=False,
-        )
+        details = offer_for(query)
         return [
-            dict(details, airline="Expensive Airline", price="200.00"),
-            dict(details, airline="Cheaper Airline", price="99.50", is_demo=True),
+            dict(details, airline="Expensive Airline", total_amount="200.00"),
+            dict(details, airline="Cheaper Airline", live_mode=False, is_demo=True),
         ]
 
     provider.search_flights = search_flights
@@ -73,7 +89,10 @@ def test_mock_offers_render_in_price_order(flight_client):
     html = response.get_data(as_text=True)
     assert response.status_code == 200
     assert html.index("Cheaper Airline") < html.index("Expensive Airline")
-    for detail in ("EUR", "99.50", "09:30", "10:50", "1h 20m", "One checked bag", "Demo", "Live API"):
+    for detail in (
+        "EUR", "99.50", "09:30", "10:50", "1h 20m", "1 checked", "Demo offer",
+        "Live API offer", "AMS → CDG", "CDG → AMS", "Nonstop",
+    ):
         assert detail in html
 
 
@@ -83,6 +102,7 @@ def test_mock_offers_render_in_price_order(flight_client):
     ({"departure_date": "incorrect"}, "Choose valid travel dates"),
     ({"return_date": "2001-01-01"}, "return must be on or after departure"),
     ({"adults": "0"}, "Enter a whole number of passengers"),
+    ({"adults": "10"}, "Enter a whole number of passengers"),
 ])
 def test_invalid_input_stays_on_page(flight_client, changes, message):
     client, _, query = flight_client
@@ -119,11 +139,23 @@ def test_empty_offers_and_api_error_are_explained(flight_client):
 def test_sandbox_offers_are_labeled_and_have_no_booking_link(flight_client, monkeypatch):
     client, provider, query = flight_client
     monkeypatch.setenv("DUFFEL_ACCESS_TOKEN", "duffel_test_mock")
+    query = query | {"return_date": ""}
     provider.search_flights = lambda *args, **kwargs: [
-        dict(price="10", currency="EUR", booking_url="https://example.org/book")
+        dict(offer_for(query), booking_url="https://example.org/book")
     ]
-    response = client.get("/", query_string=query | {"return_date": ""})
+    response = client.get("/", query_string=query)
     assert response.status_code == 200
     assert b"Demo offer" in response.data
     assert b"Live API offer" not in response.data
     assert b"example.org/book" not in response.data
+
+
+def test_unknown_provider_mode_is_not_claimed_as_live(flight_client):
+    client, provider, query = flight_client
+    provider.search_flights = lambda *args, **kwargs: [
+        dict(offer_for(query), live_mode=None)
+    ]
+    response = client.get("/", query_string=query)
+    assert response.status_code == 200
+    assert b"API offer" in response.data
+    assert b"Live API offer" not in response.data

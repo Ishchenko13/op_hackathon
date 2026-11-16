@@ -1,5 +1,3 @@
-"""Run a terminal demo using the project's city and provenance CSV files."""
-
 from pathlib import Path
 
 from data_loader import load_city_data, load_provenance

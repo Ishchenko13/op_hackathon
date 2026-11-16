@@ -41,7 +41,7 @@
       </div>
       <div class="flight-field">
         <label for="flight-adults">Adult passengers</label>
-        <input id="flight-adults" type="number" name="adults" min="1"
+        <input id="flight-adults" type="number" name="adults" min="1" max="9"
                step="1" value="{{ flight_form.adults }}" required>
       </div>
     </div>
@@ -62,23 +62,26 @@
             <div class="flight-offer-heading">
               <div>
                 <p class="offer-type{% if offer.is_demo %} offer-demo{% endif %}">
-                  {{ 'Demo offer' if offer.is_demo else 'Live API offer' }}
+                  {% if offer.is_demo %}Demo offer{% elif offer.is_live %}Live API offer{% else %}API offer{% endif %}
                 </p>
                 <h4>{{ offer.airline or 'Airline unavailable' }}</h4>
               </div>
               <p class="flight-price">{{ offer.price }} {{ offer.currency }}</p>
             </div>
-            <dl class="flight-details">
-              <div><dt>Departure</dt><dd>{{ offer.departure or 'Unavailable' }}</dd></div>
-              <div><dt>Arrival</dt><dd>{{ offer.arrival or 'Unavailable' }}</dd></div>
-              {% if offer.duration %}<div><dt>Duration</dt><dd>{{ offer.duration }}</dd></div>{% endif %}
-              {% if offer.stops is not none %}
-                <div><dt>Stops</dt><dd>{{ 'Nonstop' if offer.stops == 0 else offer.stops }}</dd></div>
-              {% endif %}
-              {% if offer.baggage %}
-                <div><dt>Included baggage</dt><dd>{{ 'Included' if offer.baggage is sameas true else offer.baggage }}</dd></div>
-              {% endif %}
-            </dl>
+            {% for leg in offer.legs %}
+              <dl class="flight-details">
+                <div><dt>{{ 'Outbound' if loop.first else 'Return' }}</dt><dd>{{ leg.origin }} → {{ leg.destination }}</dd></div>
+                <div><dt>Departure</dt><dd>{{ leg.departure }}</dd></div>
+                <div><dt>Arrival</dt><dd>{{ leg.arrival }}</dd></div>
+                <div><dt>Duration</dt><dd>{{ leg.duration }}</dd></div>
+                <div><dt>Stops</dt><dd>{{ 'Nonstop' if leg.stops == 0 else leg.stops }}</dd></div>
+                {% if leg.baggage %}
+                  <div><dt>Reported baggage per passenger</dt>
+                    {% for allowance in leg.baggage | unique %}<dd>{{ allowance }}</dd>{% endfor %}
+                  </div>
+                {% endif %}
+              </dl>
+            {% endfor %}
             {% if not offer.is_demo and offer.booking_url is string and offer.booking_url.startswith(('https://', 'http://')) %}
               <a href="{{ offer.booking_url }}">View on provider site</a>
             {% endif %}

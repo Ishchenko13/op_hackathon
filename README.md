@@ -35,11 +35,18 @@ The terminal demo uses the project's local city data. Demo flight offers, if ena
 python -m pytest -q
 ```
 
-Tests for `airport_service.py` and `flight_service.py` use the shared function interfaces and do not call the live API. They will run when those modules are added.
+The suite checks the airport catalog, Duffel service with mocked HTTP responses, Flask flight form, and city recommender.
 
-## Flight search functions
+## Flight search
+
+On the home page, select airport suggestions, choose your dates and number of adults, then click **Find flights**. The total price covers all passengers and both directions when a return is selected. Use a Duffel test token for sandbox offers, which the app labels as demo.
 
 - `airport_service.search_airports(query, limit=8)` returns airport records with `iata`, `city`, `airport`, `country`, and `display_name`.
-- `flight_service.search_flights(origin_iata, destination_iata, departure_date, return_date=None, adults=1, max_results=10)` accepts Python `date` values for departure and return. The Flask view expects offer records with `price` and `currency`. It also displays `airline`, `departure`, `arrival`, `duration`, `stops`, `baggage`, and `booking_url` when supplied. The optional boolean `is_demo` identifies sample offers. The view also labels offers from explicit demo mode or a Duffel test token as demo.
+- `flight_service.search_flights(origin_iata, destination_iata, departure_date, return_date=None, adults=1, max_results=10)` accepts ISO dates (`YYYY-MM-DD`) and 1–9 adults. It returns price-sorted offers or an empty list. Provider errors raise `FlightServiceError`.
+- An offer includes `total_amount`, `currency`, operating airlines, outbound and optional return slices, and any baggage allowances provided. Duffel's test offers include `is_demo`. Flight fares can change before purchase.
 
-Flight prices can change before purchase. CrowdFree does not book tickets or take payment.
+Flask loads the local `.env` at startup. When calling the service directly, set `DUFFEL_ACCESS_TOKEN` in the process environment. See the [Duffel offer schema](https://duffel.com/docs/api/offers).
+
+## City data
+
+The app uses the snapshots and methodology recorded in `data/provenance.csv`. The crowding index is a tourism activity proxy. Coverage is limited to city-month rows in the CSV files.
