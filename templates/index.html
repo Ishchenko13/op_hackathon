@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>CrowdFree</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container">
+      <h1>CrowdFree<span>.</span></h1>
+      <p>Compare European cities by nightly accommodation price and seasonal review activity.</p>
+    </div>
+  </header>
+
+  <main class="container layout">
+    <form class="filters panel" action="{{ url_for('index') }}" method="get">
+      <input type="hidden" name="compare" value="1">
+      <h2>Plan your comparison</h2>
+
+      <fieldset>
+        <legend>Cities</legend>
+        <div class="city-options">
+          {% for city in cities %}
+            <label class="city-option">
+              <input type="checkbox" name="city" value="{{ city }}"{% if city in selected_cities %} checked{% endif %}>
+              {{ city }}
+            </label>
+          {% endfor %}
+        </div>
+      </fieldset>
+
+      <div class="field">
+        <label for="month">Travel month</label>
+        <select id="month" name="month">
+          {% for value, label in months %}
+            <option value="{{ value }}"{% if month == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="field">
+        <label for="price-weight">Weight on affordability</label>
+        <input id="price-weight" type="range" name="price_weight" min="0" max="100"
+               value="{{ price_percent }}" aria-describedby="weight-help">
+        <div class="range-labels" aria-hidden="true"><span>0%</span><span>100%</span></div>
+        <p class="muted help" id="weight-help">The remaining weight favors lower seasonal review activity.</p>
+      </div>
+
+      <div class="field">
+        <label for="dataset">Dataset</label>
+        <select id="dataset" name="dataset">
+          {% for value, label in datasets.items() %}
+            <option value="{{ value }}"{% if dataset == value %} selected{% endif %}>{{ label }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <button type="submit">Compare cities</button>
+    </form>
+
+    <section class="results" aria-labelledby="results-title">
+      <div class="results-header">
+        <h2 id="results-title">Recommendations for {{ month_label }}</h2>
+        <p class="muted">{{ price_percent }}% affordability · {{ 100 - price_percent }}% lower seasonal review activity</p>
+      </div>
+
+      {% if active_dataset == "demo" %}
+        <p class="notice demo"><strong>Demo data.</strong> These sample values illustrate how CrowdFree works.</p>
+      {% endif %}
+
+      {% if skipped %}
+        <p class="notice">Unavailable in this dataset for {{ month_label }}: {{ skipped | join(', ') }}.</p>
+      {% endif %}
+
+      {% if message %}
+        <p class="notice panel">{{ message }}</p>
+      {% endif %}
+
+      {% if recommendations %}
+        <ol class="ranking" role="list">
+          {% for row in recommendations %}
+            <li class="panel recommendation">
+              <h3>{{ row.city }}</h3>
+              <dl class="metrics">
+                <div>
+                  <dt>Estimated nightly accommodation</dt>
+                  <dd>€{{ '{:,.2f}'.format(row.price_eur) }}</dd>
+                </div>
+                <div>
+                  <dt>Review-based crowding proxy</dt>
+                  <dd>{{ '{:.2f}'.format(row.crowd_index) }}</dd>
+                </div>
+              </dl>
+              <p class="explanation">{{ row.explanation }}</p>
+            </li>
+          {% endfor %}
+        </ol>
+      {% endif %}
+
+      <details class="panel methodology">
+        <summary>Data sources and methodology</summary>
+        <p class="muted">
+          Prices estimate nightly accommodation in euros. The crowding proxy uses seasonal review activity
+          relative to each city's own typical activity.
+        </p>
+        {% for source in sources %}
+          <h3>{{ source.city }}</h3>
+          <dl class="source-details">
+            {% for field, value in source.items() if field not in ('city', 'month', 'data_status') and value != '' %}
+              <dt>{{ field | replace('_', ' ') | capitalize }}</dt>
+              <dd>
+                {% if value is string and value.startswith(('https://', 'http://')) %}
+                  <a href="{{ value }}">{{ value }}</a>
+                {% else %}
+                  {{ value }}
+                {% endif %}
+              </dd>
+            {% endfor %}
+          </dl>
+        {% endfor %}
+      </details>
+    </section>
+  </main>
+</body>
+</html>

@@ -28,21 +28,22 @@ python -m pytest
 
 Tests cover the ranking contract: output fields, city and month filtering, top-N limiting, slider endpoints, empty results, and invalid weights.
 
-## Run the Streamlit app
+## Run the web app
 
-After `app.py` is added:
-
-```powershell
-python -m streamlit run app.py
+```sh
+python app.py
 ```
 
-Smoke check: confirm the app opens, the city and month controls render, adjusting the price weight updates recommendations, and an unavailable city-month selection shows a clear empty-data message instead of an error. Stop with Ctrl+C.
+Open [CrowdFree](http://127.0.0.1:8000/). The form includes Amsterdam, Barcelona, Paris, Prague, Rome, and Vienna. Choose a month and price weight, then click **Compare cities**. When the data or ranking modules are still being prepared, the page shows a preview. Stop the server with Ctrl+C.
+
+With the data and ranking modules in place, check that changing the weight updates the ranking when the metrics favor different cities and that an unavailable city-month selection shows a clear message.
 
 ## Team interfaces
 
 - `data_loader.py`: `load_city_data(path="data/cities.csv")` returns a DataFrame with `city`, integer `month`, `price_eur`, and `crowd_index`; city-month pairs are unique, prices are finite and positive, and proxy values are finite and nonnegative. `load_provenance(path="data/provenance.csv")` returns source metadata by city and month, including URLs, snapshot dates or review periods, methodology, and `data_status` (`observed` or `demo`).
 - `recommender.py`: `rank_cities(data, cities, month, price_weight, top_n=3)` returns `city`, `month`, `price_eur`, `crowd_index`, `score`, and `explanation`. Price weight is in `[0, 1]`; crowding weight is `1 - price_weight`. Empty selections and no matching rows return an empty DataFrame.
-- `app.py`: Streamlit selectors, weight slider, recommendation cards, missing-data handling, provenance, and demo labels.
+- `app.py`: Flask route that reads the form, calls the Python data and ranking functions, and renders recommendations, availability messages, provenance, and demo labels.
+- `templates/index.html` and `static/style.css`: The HTML form and results layout, and the light-blue styling.
 
 ## Data and limitations
 
