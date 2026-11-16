@@ -13,12 +13,11 @@ app = Flask(__name__)
 ROOT_DIR = Path(__file__).resolve().parent
 load_dotenv(ROOT_DIR / ".env")
 DATA_DIR = ROOT_DIR / "data"
-CITIES = ("Amsterdam", "Barcelona", "Paris", "Prague", "Rome", "Vienna")
+CITIES = ("Amsterdam", "Barcelona", "Paris", "Rome", "Vienna")
 MONTHS = tuple(enumerate(month_name))[1:]
 DATASETS = {
     "auto": "Use available data",
     "observed": "Observed data",
-    "demo": "Demo data",
 }
 
 
