@@ -40,6 +40,6 @@ Tests for `airport_service.py` and `flight_service.py` use the shared function i
 ## Flight search functions
 
 - `airport_service.search_airports(query, limit=8)` returns airport records with `iata`, `city`, `airport`, `country`, and `display_name`.
-- `flight_service.search_flights(origin_iata, destination_iata, departure_date, return_date=None, adults=1, max_results=10)` returns flight offers sorted by price.
+- `flight_service.search_flights(origin_iata, destination_iata, departure_date, return_date=None, adults=1, max_results=10)` accepts Python `date` values for departure and return. The Flask view expects offer records with `price` and `currency`. It also displays `airline`, `departure`, `arrival`, `duration`, `stops`, `baggage`, and `booking_url` when supplied. The optional boolean `is_demo` identifies sample offers. The view also labels offers from explicit demo mode or a Duffel test token as demo.
 
 Flight prices can change before purchase. CrowdFree does not book tickets or take payment.

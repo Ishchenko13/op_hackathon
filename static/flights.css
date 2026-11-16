@@ -1,0 +1,82 @@
+.flight-section {
+  margin-block: clamp(1.5rem, 4vw, 2.5rem);
+  scroll-margin-top: 1rem;
+}
+
+.flight-form { padding: clamp(1rem, 3vw, 1.55rem); }
+.flight-form h2 { margin: 0 0 1rem; font-size: clamp(1.35rem, 3vw, 1.75rem); }
+
+.flight-route, .flight-dates {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.8rem 1rem;
+}
+
+.flight-dates {
+  margin-top: 0.9rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) minmax(9rem, 0.6fr);
+}
+
+.flight-field { min-width: 0; }
+.flight-field label { display: block; margin-bottom: 0.35rem; font-weight: 700; }
+.flight-field label span { font-weight: 400; }
+.flight-field input {
+  width: 100%;
+  min-width: 0;
+  min-height: 2.65rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--control-line);
+  border-radius: 0.5rem;
+  background: #fff;
+  color: var(--ink);
+  font: inherit;
+}
+
+.flight-form button { width: auto; min-width: 9rem; }
+.airport-field { position: relative; }
+.airport-status:empty { display: none; }
+.airport-options {
+  position: absolute;
+  z-index: 1;
+  inset: 4.65rem 0 auto;
+  max-height: 15rem;
+  overflow: auto;
+  padding: 0.25rem;
+  margin: 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--control-line);
+  border-radius: 0.55rem;
+  box-shadow: 0 0.35rem 1.2rem #152d4926;
+}
+
+.airport-options li { padding: 0.65rem; border-radius: 0.35rem; cursor: pointer; }
+.airport-options li:hover, .airport-options li[aria-selected="true"] { background: var(--sky); }
+.flight-message { margin-top: 0.85rem; }
+.flight-results h3 { margin: 1.25rem 0 0.75rem; }
+.flight-offers { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.7rem; }
+.flight-offer { padding: 0.9rem 1rem; }
+.flight-offer-heading { display: flex; align-items: center; justify-content: space-between; gap: 0.8rem; }
+.flight-offer-heading h4 { margin: 0.25rem 0 0; font-size: 1.15rem; }
+.flight-price { margin: 0; font-size: 1.25rem; font-weight: 750; }
+.offer-type {
+  margin: 0;
+  display: inline-block;
+  background: var(--sky);
+  border-radius: 0.35rem;
+  padding: 0.2rem 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.offer-demo { background: #f7edcc; color: #63470f; }
+.flight-details { display: flex; flex-wrap: wrap; gap: 0.6rem 1.25rem; margin: 0.7rem 0 0; }
+.flight-details dt { font-size: 0.8rem; color: var(--muted); }
+.flight-details dd { margin: 0.15rem 0 0; overflow-wrap: anywhere; }
+.flight-offer a { display: inline-block; margin-top: 0.65rem; color: var(--blue); }
+@media (max-width: 40rem) {
+  .flight-route { grid-template-columns: minmax(0, 1fr); }
+  .flight-dates { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 24rem) {
+  .flight-dates { grid-template-columns: minmax(0, 1fr); }
+}

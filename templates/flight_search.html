@@ -1,0 +1,90 @@
+{% macro airport_input(name, label) %}
+  <div class="flight-field airport-field" data-airport-field>
+    <label for="flight-{{ name }}">{{ label }}</label>
+    <input id="flight-{{ name }}" type="text" name="{{ name }}_text"
+           value="{{ flight_form[name ~ '_text'] }}" maxlength="160" required
+           autocomplete="off" spellcheck="false"
+           role="combobox" aria-autocomplete="list" aria-expanded="false"
+           aria-controls="flight-{{ name }}-options"
+           aria-describedby="flight-{{ name }}-hint flight-{{ name }}-status">
+    <input type="hidden" name="{{ name }}" value="{{ flight_form[name] }}" data-airport-code>
+    <p id="flight-{{ name }}-hint" class="muted help">City or airport, e.g. Amsterdam (AMS)</p>
+    <p id="flight-{{ name }}-status" class="airport-status muted help" role="status"></p>
+    <ul id="flight-{{ name }}-options" class="airport-options"
+        role="listbox" aria-label="{{ label }} airport suggestions" hidden></ul>
+  </div>
+{% endmacro %}
+
+<section class="container flight-section" id="flight-search" aria-labelledby="flight-title">
+  <form class="flight-form panel" action="{{ url_for('index', _anchor='flight-search') }}"
+        method="get" data-airports-url="{{ url_for('airports') }}">
+    <h2 id="flight-title">Find flights</h2>
+    <input type="hidden" name="flight_search" value="1">
+    {% for key, value in flight_query %}
+      <input type="hidden" name="{{ key }}" value="{{ value }}">
+    {% endfor %}
+
+    <div class="flight-route">
+      {{ airport_input('origin', 'From') }}
+      {{ airport_input('destination', 'To') }}
+    </div>
+    <div class="flight-dates">
+      <div class="flight-field">
+        <label for="flight-departure">Departure date</label>
+        <input id="flight-departure" type="date" name="departure_date"
+               min="{{ today }}" value="{{ flight_form.departure_date }}" required>
+      </div>
+      <div class="flight-field">
+        <label for="flight-return">Return date <span class="muted">(optional)</span></label>
+        <input id="flight-return" type="date" name="return_date"
+               min="{{ today }}" value="{{ flight_form.return_date }}">
+      </div>
+      <div class="flight-field">
+        <label for="flight-adults">Adult passengers</label>
+        <input id="flight-adults" type="number" name="adults" min="1"
+               step="1" value="{{ flight_form.adults }}" required>
+      </div>
+    </div>
+    <button type="submit">Find flights</button>
+    <noscript><p class="muted help">Enable JavaScript to choose airports from the suggestions.</p></noscript>
+  </form>
+
+  {% if flight_message %}
+    <p class="notice flight-message" role="status">{{ flight_message }}</p>
+  {% endif %}
+
+  {% if flight_offers %}
+    <section class="flight-results" aria-labelledby="flight-results-title">
+      <h3 id="flight-results-title">Flight offers</h3>
+      <ul class="flight-offers" role="list">
+        {% for offer in flight_offers %}
+          <li class="panel flight-offer">
+            <div class="flight-offer-heading">
+              <div>
+                <p class="offer-type{% if offer.is_demo %} offer-demo{% endif %}">
+                  {{ 'Demo offer' if offer.is_demo else 'Live API offer' }}
+                </p>
+                <h4>{{ offer.airline or 'Airline unavailable' }}</h4>
+              </div>
+              <p class="flight-price">{{ offer.price }} {{ offer.currency }}</p>
+            </div>
+            <dl class="flight-details">
+              <div><dt>Departure</dt><dd>{{ offer.departure or 'Unavailable' }}</dd></div>
+              <div><dt>Arrival</dt><dd>{{ offer.arrival or 'Unavailable' }}</dd></div>
+              {% if offer.duration %}<div><dt>Duration</dt><dd>{{ offer.duration }}</dd></div>{% endif %}
+              {% if offer.stops is not none %}
+                <div><dt>Stops</dt><dd>{{ 'Nonstop' if offer.stops == 0 else offer.stops }}</dd></div>
+              {% endif %}
+              {% if offer.baggage %}
+                <div><dt>Included baggage</dt><dd>{{ 'Included' if offer.baggage is sameas true else offer.baggage }}</dd></div>
+              {% endif %}
+            </dl>
+            {% if not offer.is_demo and offer.booking_url is string and offer.booking_url.startswith(('https://', 'http://')) %}
+              <a href="{{ offer.booking_url }}">View on provider site</a>
+            {% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+    </section>
+  {% endif %}
+</section>
