@@ -1,4 +1,3 @@
-"""Перевірки ізольовані від мережі й справжніх ключів."""
 from copy import deepcopy
 from unittest.mock import Mock
 

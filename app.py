@@ -1,5 +1,3 @@
-"""Serve CrowdFree's HTML interface and connect it to the team modules."""
-
 from calendar import month_name
 from pathlib import Path
 
@@ -18,7 +16,7 @@ DATASETS = {
 
 
 def compare(cities, month, price_percent, dataset):
-    """Return the results and notices needed by the HTML template."""
+
     if not cities:
         return {"message": "Select at least one city to compare."}
 

@@ -1,4 +1,3 @@
-"""Серверний пошук Duffel без бронювання, оплати чи пошуку аеропортів."""
 import os
 import re
 from datetime import date
@@ -10,11 +9,11 @@ API_URL = "https://api.duffel.com/air/offer_requests"
 
 
 class FlightServiceError(Exception):
-    """Безпечне для показу користувачеві повідомлення."""
+    pass
 
 
 class FlightValidationError(FlightServiceError):
-    """Некоректні параметри пошуку."""
+    pass
 
 
 def _iata(value):
@@ -113,10 +112,7 @@ def _normalize(offer):
 
 def search_flights(origin_iata, destination_iata, departure_date,
                    return_date=None, adults=1, max_results=10):
-    """Повертає list[dict], відсортований за ціною; порожній пошук — [].
 
-    Помилки: FlightServiceError. Сума — за всіх пасажирів та всі напрямки.
-    """
     origin, destination = _iata(origin_iata), _iata(destination_iata)
     if origin == destination:
         raise FlightValidationError("Аеропорти вильоту та прибуття мають відрізнятися.")
