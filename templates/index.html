@@ -19,7 +19,24 @@
   <main>
     {% include 'flight_search.html' %}
 
+    {% set example_cities = ['Barcelona', 'Vienna'] %}
+    {% set example_selected = month == 1 and selected_cities == example_cities and dataset != 'demo' %}
     <div class="container layout" id="city-comparison">
+      <aside class="panel comparison-example" aria-label="Example comparison">
+        <div>
+          <h2>Barcelona and Vienna in January</h2>
+          <p class="muted">See how price and tourism activity lead to different recommendations.</p>
+        </div>
+        <div class="example-actions">
+          {% if example_selected %}
+            <a class="example-link" href="{{ url_for('index', compare=1, city=example_cities, month=1, price_weight=0, _anchor='city-comparison') }}"{% if price_percent == 0 %} aria-current="page"{% endif %}>Quietest option</a>
+            <a class="example-link" href="{{ url_for('index', compare=1, city=example_cities, month=1, price_weight=100, _anchor='city-comparison') }}"{% if price_percent == 100 %} aria-current="page"{% endif %}>Cheapest stay</a>
+          {% else %}
+            <a class="example-link" href="{{ url_for('index', compare=1, city=example_cities, month=1, price_weight=0, _anchor='city-comparison') }}">Try a comparison</a>
+          {% endif %}
+        </div>
+      </aside>
+
       <form class="filters panel" action="{{ url_for('index') }}" method="get">
         <input type="hidden" name="compare" value="1">
         <h2>Compare destinations</h2>
@@ -84,7 +101,7 @@
         {% endif %}
 
         {% if recommendations %}
-          <ol class="ranking" role="list">
+          <ol class="ranking{% if example_selected %} example-ranking{% endif %}" role="list">
             {% for row in recommendations %}
               <li class="panel recommendation">
                 <h3>{{ row.city }}</h3>
@@ -102,6 +119,10 @@
                   <p class="recommendation-summary">
                     {% if recommendations | length == 1 %}
                       Only selected city with data
+                    {% elif example_selected and price_percent == 100 and row.price_eur < recommendations[1].price_eur %}
+                      {{ row.city }} ranks first on price: €{{ '{:,.2f}'.format(row.price_eur) }} per night vs. €{{ '{:,.2f}'.format(recommendations[1].price_eur) }} in {{ recommendations[1].city }}.
+                    {% elif example_selected and price_percent == 0 and row.crowd_index < recommendations[1].crowd_index %}
+                      {{ row.city }} ranks first on tourism activity: {{ '{:g}'.format(row.crowd_index) }} vs. {{ '{:g}'.format(recommendations[1].crowd_index) }} in {{ recommendations[1].city }}.
                     {% elif price_percent == 100 %}
                       Lowest estimated nightly price
                     {% elif price_percent == 0 %}
@@ -120,9 +141,15 @@
           <summary>Data sources and methodology</summary>
           <p class="muted">
             Prices estimate nightly accommodation in euros. The tourism activity index is a proxy
-            for crowding. The ranking puts your selected weight on price and the rest on the activity
-            index, favoring lower values for both.
+            for crowding. CrowdFree scales both measures between the lowest and highest values for
+            the cities you selected, then weights them using your slider setting. Lower scores rank first.
           </p>
+          {% if active_dataset == 'observed' %}
+            <p class="muted">
+              The source records list Eurostat tourism nights for the activity proxy.
+              The conversion from tourism nights to index values is undocumented.
+            </p>
+          {% endif %}
           {% for source in sources %}
             <h3>{{ source.city }}</h3>
             <dl class="source-details">
