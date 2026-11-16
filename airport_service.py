@@ -18,6 +18,8 @@ AIRPORTS_DATA = [
     {"iata": "MUC", "city": "Munich", "airport": "Munich Airport", "country": "Germany"},
     {"iata": "LHR", "city": "London", "airport": "Heathrow Airport", "country": "United Kingdom"},
     {"iata": "LGW", "city": "London", "airport": "Gatwick Airport", "country": "United Kingdom"},
+    {"iata": "ZRH", "city": "Zurich", "airport": "Zurich Airport", "country": "Switzerland"},
+    {"iata": "BRU", "city": "Brussels", "airport": "Brussels Airport", "country": "Belgium"},
 ]
 
 

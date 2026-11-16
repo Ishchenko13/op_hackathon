@@ -19,3 +19,6 @@ def test_short_and_empty_query():
 def test_limit():
     results = search_airports("Paris", limit=1)
     assert len(results) <= 1
+def test_search_includes_additional_european_airports():
+    assert search_airports("ZRH")[0]["city"] == "Zurich"
+    assert search_airports("BRU")[0]["city"] == "Brussels"
