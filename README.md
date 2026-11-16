@@ -47,3 +47,47 @@ After starting the server, confirm that the page loads, changing the month or pr
 ## Data and limitations
 
 The app uses the snapshots and methodology recorded in `data/provenance.csv`; it does not query a live Airbnb API. Check the source links and snapshot dates before interpreting the results. The crowding index is a proxy for tourism activity, not a direct count of people. Coverage is limited to the city-month rows present in the CSV files.
+
+## Flight search API (Duffel)
+
+Set `DUFFEL_ACCESS_TOKEN` in the **server process environment** before starting
+Flask. `.env.example` documents the variable; the service does not automatically
+load `.env`. Never put tokens in browser code, forms, logs, or Git. `.env` and
+`.env.*` are already ignored, except the empty `.env.example` template.
+
+```python
+from flight_service import FlightServiceError, search_flights
+
+try:
+    offers = search_flights("WAW", "BCN", "2027-08-10", adults=1)
+except FlightServiceError as error:
+    message = str(error)  # Safe message; do not render a traceback.
+```
+
+This standalone service does not change Flask routes or resolve airports. Pass
+three-letter airport codes and ISO dates (`YYYY-MM-DD`). Dates must not be in the
+past; return must be on/after departure. Limits: 1–9 adults, 1–100 results.
+It returns a price-sorted list, or `[]` if no offers match. Errors raise
+`FlightServiceError` (`FlightValidationError` for invalid inputs). Missing
+credentials never trigger a fake-ticket fallback.
+
+Offer fields: `provider`, `offer_id`, `total_amount` (decimal string, total for
+all passengers and both directions), `currency`, `airline` (operating carriers),
+`segments`, `slices`, `departure_time`, `arrival_time`, `duration`, `stops`,
+`baggage`, `live_mode`, `is_demo`, `label`. Mixed currencies are rejected rather
+than incorrectly ranked. Segments include operating/marketing airlines, flight
+number, airport codes, local times, time zones and per-passenger baggage.
+Missing baggage is `None`, not a claim of zero allowance.
+
+`duration` is ISO 8601, summed across slices, including connections but excluding
+the stay between outbound and return. `stops` sums connections across slices;
+use `slices` for separate outbound/return summaries. Top-level arrival is the
+final arrival, including the return for round trips. Display every segment's
+operating airline and any `label` prominently. Duffel test offers
+(`live_mode=false`) carry **Демо, не реальні квитки**; never present these as real
+tickets. Unspecified live mode remains unknown. Prices are search quotes, not
+guaranteed availability. Booking/payment are not implemented.
+
+References: [Duffel offer requests](https://duffel.com/docs/api/offer-requests),
+[offer schema](https://duffel.com/docs/api/offers).
+Run offline mocked tests: `python -m pytest tests/test_flight_service.py -q`.
